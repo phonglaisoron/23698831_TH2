@@ -24,7 +24,7 @@ import {
   VARIANT,
   ROOM_LABEL,
 } from '@constants/student';
-import { ShopStackParamList } from '@navigation/ShopStack';
+import { ShopStackParamList } from '@navigation/types';
 
 type DetailScreenRouteProp = RouteProp<ShopStackParamList, 'Detail'>;
 
@@ -50,11 +50,13 @@ export const DetailScreen: React.FC = () => {
   const handleAddToCart = async () => {
     if (!product) return;
 
-    if (VARIANT.hapticOnAdd === 'impact') {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } else {
-      await Haptics.selectionAsync();
-    }
+    try {
+      if (VARIANT.hapticOnAdd === 'impact') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        await Haptics.selectionAsync();
+      }
+    } catch {}
 
     addItemToCart(product);
 

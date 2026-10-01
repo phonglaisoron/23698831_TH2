@@ -24,7 +24,7 @@ import {
   DEBOUNCE_MS,
   STALE_TIME_MS,
 } from '@constants/student';
-import { ShopStackParamList } from '@navigation/ShopStack';
+import { ShopStackParamList } from '@navigation/types';
 
 type HomeScreenNavigationProp = NativeStackNavigationProp<ShopStackParamList, 'Home'>;
 

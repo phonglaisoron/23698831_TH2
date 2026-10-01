@@ -30,11 +30,13 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   const handleAddPress = async (e: any) => {
     e.stopPropagation?.();
-    if (VARIANT.hapticOnAdd === 'impact') {
-      await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
-    } else {
-      await Haptics.selectionAsync();
-    }
+    try {
+      if (VARIANT.hapticOnAdd === 'impact') {
+        await Haptics.impactAsync(Haptics.ImpactFeedbackStyle.Medium);
+      } else {
+        await Haptics.selectionAsync();
+      }
+    } catch {}
     onAddToCart(product);
   };
 

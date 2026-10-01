@@ -3,11 +3,7 @@ import { createNativeStackNavigator } from '@react-navigation/native-stack';
 import { HomeScreen } from '@screens/HomeScreen';
 import { DetailScreen } from '@screens/DetailScreen';
 import { VARIANT } from '@constants/student';
-
-export type ShopStackParamList = {
-  Home: undefined;
-  Detail: { id: string };
-};
+import { ShopStackParamList } from './types';
 
 const Stack = createNativeStackNavigator<ShopStackParamList>();
 
