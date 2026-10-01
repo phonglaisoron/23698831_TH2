@@ -1,6 +1,5 @@
-// TH2 | 23698831 | NGUYEN DINH PHONG | #448604
-import React from 'react';
-import { StatusBar } from 'react-native';
+import React, { useEffect } from 'react';
+import { StatusBar, Platform } from 'react-native';
 import { SafeAreaProvider } from 'react-native-safe-area-context';
 import { QueryClient, QueryClientProvider } from '@tanstack/react-query';
 import { NavigationContainer } from '@react-navigation/native';
@@ -17,9 +16,15 @@ const queryClient = new QueryClient({
 });
 
 export const App: React.FC = () => {
+  useEffect(() => {
+    if (Platform.OS === 'android') {
+      (StatusBar as any).setBackgroundColor?.('#10357A', true);
+    }
+  }, []);
+
   return (
     <SafeAreaProvider>
-      <StatusBar barStyle="dark-content" />
+      <StatusBar barStyle="light-content" />
       <QueryClientProvider client={queryClient}>
         <NavigationContainer>
           <RootNavigator />

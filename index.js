@@ -1,6 +1,7 @@
 /**
  * @format
  */
+/* global globalThis */
 
 // Fallback polyfill for expo-modules-core when running in bare React Native CLI
 if (typeof globalThis !== 'undefined') {

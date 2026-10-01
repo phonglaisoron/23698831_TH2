@@ -14,11 +14,12 @@ export interface CartItem {
 interface CartState {
   items: CartItem[];
   shippingFee: number | null;
+  distanceKm: number | null;
   addItem: (product: Product) => void;
   removeItem: (productId: number) => void;
   changeQty: (productId: number, delta: number) => void;
   clearCart: () => void;
-  setShippingFee: (fee: number | null) => void;
+  setShippingFee: (fee: number | null, distanceKm?: number | null) => void;
   getTotalQuantity: () => number;
   getTotalAmount: () => number;
 }
@@ -28,6 +29,7 @@ export const useCartStore = create<CartState>()(
     (set, get) => ({
       items: [],
       shippingFee: null,
+      distanceKm: null,
 
       addItem: (product: Product) => {
         const unitPriceVnd = Math.round(product.price * PRICE_MULTIPLIER);
@@ -77,8 +79,11 @@ export const useCartStore = create<CartState>()(
         set({ items: [] });
       },
 
-      setShippingFee: (fee: number | null) => {
-        set({ shippingFee: fee });
+      setShippingFee: (fee: number | null, distanceKm?: number | null) => {
+        set((state) => ({
+          shippingFee: fee,
+          distanceKm: distanceKm !== undefined ? distanceKm : state.distanceKm,
+        }));
       },
 
       getTotalQuantity: () => {

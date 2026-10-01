@@ -23,6 +23,7 @@ import {
   ROOM_LABEL,
   DEBOUNCE_MS,
   STALE_TIME_MS,
+  VARIANT,
 } from '@constants/student';
 import { ShopStackParamList } from '@navigation/types';
 
@@ -70,44 +71,50 @@ export const HomeScreen: React.FC = () => {
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        {/* Header (A) */}
-        <View style={styles.header}>
+        {VARIANT.watermarkAtTop && <Watermark />}
+
+        {/* Header (A) - Thanh màu xanh đậm chuẩn đề thi */}
+        <View style={styles.blueHeader}>
           <View>
-            <View style={styles.brandRow}>
-              <Text style={styles.brandTitle}>KTXGO</Text>
-              <View style={styles.roomBadge}>
-                <Text style={styles.roomText}>Giao tận {ROOM_LABEL}</Text>
-              </View>
-            </View>
-            <Text style={styles.subHeader}>
-              Sinh viên: {STUDENT.hoTen} ({STUDENT.mssv})
-            </Text>
+            <Text style={styles.brandTitle}>KTXGO</Text>
+            <Text style={styles.roomText}>Giao tận {ROOM_LABEL}</Text>
+          </View>
+          <Text style={styles.headerLabelA}>(A)</Text>
+        </View>
+
+        {/* Thanh tìm kiếm (B) */}
+        <View style={styles.searchSection}>
+          <View style={styles.labelBRow}>
+            <View style={{ flex: 1 }} />
+            <Text style={styles.labelB}>(B)</Text>
+          </View>
+          <View style={styles.searchContainer}>
+            <TextInput
+              style={styles.searchInput}
+              placeholder={`Tìm món (debounce) — ${STUDENT.mssv}`}
+              placeholderTextColor="#94A3B8"
+              value={searchQuery}
+              onChangeText={setSearchQuery}
+              autoCapitalize="none"
+            />
+            {searchQuery.length > 0 && (
+              <TouchableOpacity
+                onPress={() => setSearchQuery('')}
+                style={styles.clearSearchBtn}
+              >
+                <Text style={styles.clearSearchText}>✕</Text>
+              </TouchableOpacity>
+            )}
           </View>
         </View>
 
-        {/* Search bar (B) */}
-        <View style={styles.searchContainer}>
-          <TextInput
-            style={styles.searchInput}
-            placeholder={`Tìm món ăn, đồ dùng (Debounce: ${DEBOUNCE_MS}ms)...`}
-            placeholderTextColor={theme.colors.textLight}
-            value={searchQuery}
-            onChangeText={setSearchQuery}
-            autoCapitalize="none"
-          />
-          {searchQuery.length > 0 && (
-            <TouchableOpacity
-              onPress={() => setSearchQuery('')}
-              style={styles.clearSearchBtn}
-            >
-              <Text style={styles.clearSearchText}>✕</Text>
-            </TouchableOpacity>
-          )}
+        {/* Nhãn (C) FlashList x2 */}
+        <View style={styles.labelCRow}>
+          <Text style={styles.labelC}>(C) FlashList ×2</Text>
         </View>
 
-        {/* Ba cảnh mạng (thiếu một = sai Câu 2b) */}
+        {/* Ba cảnh mạng */}
         <View style={styles.content}>
-          {/* Cảnh 1: Đang tải */}
           {isLoading ? (
             <View style={styles.centerBox}>
               <ActivityIndicator size="large" color={theme.colors.primary} />
@@ -115,7 +122,6 @@ export const HomeScreen: React.FC = () => {
               <Text style={styles.loadingSub}>MSSV: {STUDENT.mssv}</Text>
             </View>
           ) : isError ? (
-            /* Cảnh 2: Lỗi mạng (có MSSV + Thử lại) */
             <View style={styles.centerBox}>
               <Text style={styles.errorIcon}>⚠️</Text>
               <Text style={styles.errorTitle}>Lỗi kết nối mạng</Text>
@@ -134,16 +140,16 @@ export const HomeScreen: React.FC = () => {
               </TouchableOpacity>
             </View>
           ) : (
-            /* Cảnh 3: Có dữ liệu lưới FlashList 2 cột (C) */
             <FlashList
               data={filteredProducts}
               numColumns={2}
-              estimatedItemSize={260}
+              estimatedItemSize={175}
               keyExtractor={(item) => `${STUDENT.mssv}-${item.id}`}
-              renderItem={({ item }) => (
+              renderItem={({ item, index }) => (
                 <View style={styles.columnWrapper}>
                   <ProductCard
                     product={item}
+                    index={index}
                     onPress={handleProductPress}
                     onAddToCart={handleAddToCart}
                   />
@@ -163,7 +169,7 @@ export const HomeScreen: React.FC = () => {
           )}
         </View>
 
-        <Watermark />
+        {!VARIANT.watermarkAtTop && <Watermark />}
       </View>
     </SafeAreaView>
   );
@@ -172,86 +178,94 @@ export const HomeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#1D4ED8',
   },
   container: {
     flex: 1,
+    backgroundColor: '#EFF6FF',
   },
-  header: {
+  blueHeader: {
+    backgroundColor: '#1D4ED8',
     flexDirection: 'row',
+    alignItems: 'center',
     justifyContent: 'space-between',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.xs,
-  },
-  brandRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    gap: 8,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
   },
   brandTitle: {
     fontSize: 22,
     fontWeight: '900',
-    color: theme.colors.primary,
+    color: '#FFFFFF',
     letterSpacing: 0.5,
   },
-  roomBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 8,
-    paddingVertical: 3,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
   roomText: {
-    fontSize: 12,
-    fontWeight: '700',
-    color: theme.colors.primary,
-  },
-  subHeader: {
-    fontSize: 11,
-    color: theme.colors.textLight,
+    fontSize: 13,
+    color: '#E0F2FE',
     marginTop: 2,
     fontWeight: '500',
   },
-  searchContainer: {
+  headerLabelA: {
+    fontSize: 13,
+    fontWeight: '700',
+    color: '#F97316',
+  },
+  searchSection: {
+    paddingHorizontal: 16,
+    paddingTop: 4,
+    paddingBottom: 2,
+  },
+  labelBRow: {
     flexDirection: 'row',
-    alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.xs,
+    marginBottom: 2,
+  },
+  labelB: {
+    fontSize: 12,
+    fontWeight: '700',
+    color: '#1D4ED8',
+  },
+  searchContainer: {
+    position: 'relative',
+    justifyContent: 'center',
   },
   searchInput: {
-    flex: 1,
-    height: 42,
-    backgroundColor: theme.colors.surface,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    borderRadius: theme.borderRadius.md,
-    paddingHorizontal: theme.spacing.md,
-    fontSize: 14,
-    color: theme.colors.text,
+    height: 40,
+    backgroundColor: '#FFFFFF',
+    borderWidth: 1.5,
+    borderColor: '#93C5FD',
+    borderRadius: 20,
+    paddingHorizontal: 16,
+    fontSize: 13,
+    color: '#1E3A8A',
   },
   clearSearchBtn: {
     position: 'absolute',
-    right: theme.spacing.lg + 10,
+    right: 12,
     width: 24,
     height: 24,
     alignItems: 'center',
     justifyContent: 'center',
   },
   clearSearchText: {
-    color: theme.colors.textLight,
+    color: '#94A3B8',
     fontSize: 14,
     fontWeight: '700',
+  },
+  labelCRow: {
+    alignItems: 'flex-end',
+    paddingHorizontal: 16,
+    paddingVertical: 4,
+  },
+  labelC: {
+    fontSize: 11,
+    fontWeight: '700',
+    color: '#1D4ED8',
   },
   content: {
     flex: 1,
   },
   listContent: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingTop: theme.spacing.sm,
-    paddingBottom: theme.spacing.md,
+    paddingHorizontal: 16,
+    paddingBottom: 16,
   },
   columnWrapper: {
     alignItems: 'center',
@@ -260,60 +274,60 @@ const styles = StyleSheet.create({
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    paddingHorizontal: theme.spacing.xl,
+    paddingHorizontal: 24,
   },
   loadingText: {
-    marginTop: theme.spacing.md,
+    marginTop: 16,
     fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: '#1E3A8A',
   },
   loadingSub: {
     marginTop: 4,
     fontSize: 12,
-    color: theme.colors.textLight,
+    color: '#64748B',
   },
   errorIcon: {
     fontSize: 44,
-    marginBottom: theme.spacing.sm,
+    marginBottom: 8,
   },
   errorTitle: {
     fontSize: 18,
     fontWeight: '800',
-    color: theme.colors.error,
+    color: '#DC2626',
     marginBottom: 6,
   },
   errorMessage: {
     fontSize: 14,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: '#1E3A8A',
     textAlign: 'center',
     marginBottom: 4,
   },
   errorDetail: {
     fontSize: 12,
-    color: theme.colors.textLight,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: theme.spacing.lg,
+    marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#1D4ED8',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 14,
     fontWeight: '700',
   },
   emptyContainer: {
-    paddingVertical: theme.spacing.xxl,
+    paddingVertical: 40,
     alignItems: 'center',
   },
   emptyText: {
-    color: theme.colors.textLight,
-    fontSize: 14,
+    color: '#64748B',
+    fontSize: 13,
     textAlign: 'center',
   },
 });

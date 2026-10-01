@@ -4,7 +4,7 @@
 **URL Clone HTTPS:** `https://github.com/phonglaisoron/23698831_TH2.git`  
 **Stamp:** #448604  
 **Số cuối MSSV:** 1  
-**Hàng VARIANT:** Watermark: Dưới | Ô Login: phone | Thứ tự Tab: Shop→Giỏ→Tôi | Haptic: selection | Phí: B | Detail: card  
+**Hàng VARIANT:** Watermark: Trên | Ô Login: phone | Thứ tự Tab: Shop→Giỏ→Tôi | Haptic: selection | Phí: B | Detail: card  
 
 ---
 
@@ -70,6 +70,12 @@ KTXGo_23698831/
 
 ### 2. Màn hình Giỏ hàng (Cart Screen)
 ![Cart Screen](docs/screenshot-th2-cart.png)
+
+### 3. Màn hình Tôi · Location (Me Screen)
+![Me Screen](docs/screenshot-th2-me.png)
+
+### 4. Màn hình Chi tiết món (Detail Screen)
+![Detail Screen](docs/screenshot-th2-detail.png)
 
 ---
 

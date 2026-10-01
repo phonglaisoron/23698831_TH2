@@ -1,10 +1,11 @@
 import React from 'react';
 import { View, Text, StyleSheet } from 'react-native';
 import { STUDENT, examStamp, VARIANT } from '@constants/student';
-import { theme } from '@constants/theme';
+import { useCartStore } from '@stores/cartStore';
 
 export const Watermark: React.FC = () => {
   const stamp = examStamp();
+  const totalQuantity = useCartStore((s) => s.getTotalQuantity());
   const text = `TH2 · ${STUDENT.mssv} · ${STUDENT.hoTen} · #${stamp}`;
 
   return (
@@ -12,6 +13,7 @@ export const Watermark: React.FC = () => {
       <Text style={styles.text} numberOfLines={1}>
         {text}
       </Text>
+      <Text style={styles.badgeText}>({totalQuantity})</Text>
     </View>
   );
 };
@@ -19,26 +21,36 @@ export const Watermark: React.FC = () => {
 const styles = StyleSheet.create({
   container: {
     paddingVertical: 6,
-    paddingHorizontal: 12,
-    backgroundColor: 'rgba(29, 78, 216, 0.08)',
+    paddingHorizontal: 16,
+    backgroundColor: '#DBEAFE',
+    flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'center',
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
+    justifyContent: 'space-between',
+    borderBottomWidth: 1,
+    borderColor: '#BFDBFE',
   },
   atTop: {
-    borderBottomWidth: StyleSheet.hairlineWidth,
+    borderBottomWidth: 1,
     borderTopWidth: 0,
+    borderColor: '#BFDBFE',
   },
   atBottom: {
-    borderTopWidth: StyleSheet.hairlineWidth,
+    borderTopWidth: 1,
     borderBottomWidth: 0,
+    borderColor: '#BFDBFE',
   },
   text: {
-    fontSize: 11,
+    fontSize: 11.5,
     fontWeight: '700',
-    color: theme.colors.primary,
-    letterSpacing: 0.5,
+    color: '#10357A',
+    letterSpacing: 0.2,
+    flex: 1,
+  },
+  badgeText: {
+    fontSize: 11.5,
+    fontWeight: '700',
+    color: '#10357A',
+    marginLeft: 6,
   },
 });
 

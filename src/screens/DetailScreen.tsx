@@ -16,7 +16,6 @@ import * as Haptics from 'expo-haptics';
 import { productApi, Product } from '@services/productApi';
 import { useCartStore } from '@stores/cartStore';
 import { Watermark } from '@components/Watermark';
-import { theme } from '@constants/theme';
 import {
   STUDENT,
   PRICE_MULTIPLIER,
@@ -66,27 +65,30 @@ export const DetailScreen: React.FC = () => {
     );
   };
 
+  const priceVnd = product
+    ? Math.round(product.price * PRICE_MULTIPLIER).toLocaleString('vi-VN') + ' đ'
+    : '';
+
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        {/* Custom Header */}
+        {VARIANT.watermarkAtTop && <Watermark />}
+
+        {/* Header chi tiết món */}
         <View style={styles.header}>
           <TouchableOpacity
             style={styles.backButton}
             onPress={() => navigation.goBack()}
             activeOpacity={0.7}
           >
-            <Text style={styles.backButtonText}>← Quay lại</Text>
+            <Text style={styles.backButtonText}>← Chi tiết món</Text>
           </TouchableOpacity>
-          <Text style={styles.headerTitle} numberOfLines={1}>
-            Chi tiết sản phẩm #{id}
-          </Text>
-          <View style={styles.headerRightPlaceholder} />
+          <Text style={styles.headerStackTag}>Stack</Text>
         </View>
 
         {isLoading ? (
           <View style={styles.centerBox}>
-            <ActivityIndicator size="large" color={theme.colors.primary} />
+            <ActivityIndicator size="large" color="#1D4ED8" />
             <Text style={styles.loadingText}>Đang tải chi tiết món...</Text>
             <Text style={styles.loadingSub}>MSSV: {STUDENT.mssv}</Text>
           </View>
@@ -108,72 +110,52 @@ export const DetailScreen: React.FC = () => {
           <ScrollView
             style={styles.scrollView}
             contentContainerStyle={styles.scrollContent}
+            showsVerticalScrollIndicator={false}
           >
-            <View style={styles.imageCard}>
-              <Image
-                source={{ uri: product.image }}
-                style={styles.image}
-                resizeMode="contain"
-              />
+            {/* Khung hình ảnh pastel giống Hình 4 */}
+            <View style={styles.mediaContainer}>
+              <View style={styles.mockOval}>
+                <View style={styles.mockRect} />
+              </View>
+              {product.image ? (
+                <Image
+                  source={{ uri: product.image }}
+                  style={styles.realImage}
+                  resizeMode="contain"
+                />
+              ) : null}
             </View>
 
-            <View style={styles.infoCard}>
-              <View style={styles.categoryRow}>
-                <View style={styles.categoryBadge}>
-                  <Text style={styles.categoryText}>{product.category}</Text>
-                </View>
-                {product.rating && (
-                  <View style={styles.ratingBadge}>
-                    <Text style={styles.ratingText}>
-                      ⭐ {product.rating.rate} ({product.rating.count} đánh giá)
-                    </Text>
-                  </View>
-                )}
-              </View>
-
+            {/* Thông tin món */}
+            <View style={styles.infoSection}>
               <Text style={styles.title}>{product.title}</Text>
-
-              <View style={styles.priceRow}>
-                <Text style={styles.priceLabel}>Giá ưu đãi KTX:</Text>
-                <Text style={styles.price}>
-                  {Math.round(product.price * PRICE_MULTIPLIER).toLocaleString('vi-VN')} đ
-                </Text>
-              </View>
-
-              <View style={styles.deliveryBadge}>
-                <Text style={styles.deliveryText}>
-                  🛵 KTXGo đảm bảo giao nhanh tận {ROOM_LABEL}
-                </Text>
-              </View>
-
-              <View style={styles.divider} />
-
-              <Text style={styles.sectionTitle}>Mô tả sản phẩm:</Text>
-              <Text style={styles.description}>{product.description}</Text>
+              <Text style={styles.price}>{priceVnd}</Text>
+              <Text style={styles.subtitle}>Giao nội khu · Nhận tận phòng</Text>
             </View>
-          </ScrollView>
-        )}
 
-        {/* Bottom action bar */}
-        {product && (
-          <View style={styles.bottomBar}>
-            <View style={styles.totalPreview}>
-              <Text style={styles.totalPreviewLabel}>Đơn giá:</Text>
-              <Text style={styles.totalPreviewPrice}>
-                {Math.round(product.price * PRICE_MULTIPLIER).toLocaleString('vi-VN')} đ
+            {/* Phần mô tả theo đúng yêu cầu trên tờ đề */}
+            <View style={styles.descriptionSection}>
+              <Text style={styles.descPrompt}>Mô tả ngắn từ API (tối đa 3 dòng).</Text>
+              <Text style={styles.descContent} numberOfLines={3}>
+                {product.description || 'Món ăn, đồ dùng giao nhanh ký túc xá cho sinh viên nội trú.'}
+              </Text>
+              <Text style={styles.descPrompt}>
+                Giữ nguyên id từ route.params (ID: {id}).
               </Text>
             </View>
+
+            {/* Nút Thêm vào giỏ · Haptic */}
             <TouchableOpacity
               style={styles.addToCartButton}
               onPress={handleAddToCart}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
-              <Text style={styles.addToCartText}>+ Thêm vào giỏ</Text>
+              <Text style={styles.addToCartText}>Thêm vào giỏ · Haptic</Text>
             </TouchableOpacity>
-          </View>
+          </ScrollView>
         )}
 
-        <Watermark />
+        {!VARIANT.watermarkAtTop && <Watermark />}
       </View>
     </SafeAreaView>
   );
@@ -182,227 +164,181 @@ export const DetailScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#FFFFFF',
   },
   container: {
     flex: 1,
+    backgroundColor: '#F0F6FF',
   },
   header: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.sm,
-    backgroundColor: theme.colors.surface,
+    paddingHorizontal: 16,
+    paddingVertical: 12,
+    backgroundColor: '#FFFFFF',
     borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    borderBottomColor: '#E2E8F0',
   },
   backButton: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
+    paddingVertical: 4,
   },
   backButtonText: {
-    fontSize: 14,
-    color: theme.colors.primary,
+    fontSize: 16,
+    color: '#1D4ED8',
     fontWeight: '700',
   },
-  headerTitle: {
-    fontSize: 15,
+  headerStackTag: {
+    fontSize: 13,
     fontWeight: '700',
-    color: theme.colors.text,
-    maxWidth: '50%',
-  },
-  headerRightPlaceholder: {
-    width: 60,
+    color: '#F97316',
   },
   scrollView: {
     flex: 1,
   },
   scrollContent: {
-    padding: theme.spacing.lg,
-    paddingBottom: theme.spacing.xl,
+    padding: 16,
+    paddingBottom: 32,
   },
-  imageCard: {
-    backgroundColor: '#FFFFFF',
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
+  mediaContainer: {
+    height: 190,
+    backgroundColor: '#FEF3C7',
+    borderRadius: 16,
     alignItems: 'center',
     justifyContent: 'center',
-    height: 240,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
+    marginBottom: 20,
+    position: 'relative',
+    overflow: 'hidden',
   },
-  image: {
-    width: '100%',
-    height: '100%',
-  },
-  infoCard: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-  },
-  categoryRow: {
-    flexDirection: 'row',
+  mockOval: {
+    width: '75%',
+    height: 100,
+    borderRadius: 50,
+    backgroundColor: '#93C5FD',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginBottom: theme.spacing.sm,
+    justifyContent: 'center',
+    opacity: 0.9,
   },
-  categoryBadge: {
-    backgroundColor: '#DBEAFE',
-    paddingHorizontal: 10,
-    paddingVertical: 4,
-    borderRadius: theme.borderRadius.sm,
+  mockRect: {
+    width: '78%',
+    height: 60,
+    backgroundColor: '#1D4ED8',
+    borderRadius: 6,
   },
-  categoryText: {
-    color: theme.colors.primary,
-    fontSize: 11,
-    fontWeight: '700',
-    textTransform: 'uppercase',
+  realImage: {
+    position: 'absolute',
+    width: '75%',
+    height: '75%',
+    opacity: 0.15,
   },
-  ratingBadge: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
-  },
-  ratingText: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    fontWeight: '600',
+  infoSection: {
+    alignItems: 'center',
+    marginBottom: 24,
   },
   title: {
-    fontSize: 18,
-    fontWeight: '800',
-    color: theme.colors.text,
-    lineHeight: 24,
-    marginBottom: theme.spacing.md,
-  },
-  priceRow: {
-    flexDirection: 'row',
-    alignItems: 'baseline',
-    marginBottom: theme.spacing.sm,
-    gap: 8,
-  },
-  priceLabel: {
-    fontSize: 14,
-    color: theme.colors.textLight,
-  },
-  price: {
     fontSize: 22,
-    fontWeight: '900',
-    color: theme.colors.primary,
-  },
-  deliveryBadge: {
-    backgroundColor: 'rgba(249, 115, 22, 0.1)',
-    paddingHorizontal: 12,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: 'rgba(249, 115, 22, 0.2)',
-  },
-  deliveryText: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.secondary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: theme.spacing.md,
-  },
-  sectionTitle: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontWeight: '800',
+    color: '#1E3A8A',
+    textAlign: 'center',
     marginBottom: 6,
   },
-  description: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-    lineHeight: 20,
-  },
-  bottomBar: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    justifyContent: 'space-between',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  totalPreview: {
-    flex: 1,
-  },
-  totalPreviewLabel: {
-    fontSize: 11,
-    color: theme.colors.textLight,
-  },
-  totalPreviewPrice: {
-    fontSize: 16,
+  price: {
+    fontSize: 20,
     fontWeight: '800',
-    color: theme.colors.primary,
+    color: '#1D4ED8',
+    marginBottom: 6,
+  },
+  subtitle: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '500',
+  },
+  descriptionSection: {
+    backgroundColor: '#FFFFFF',
+    padding: 16,
+    borderRadius: 12,
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    marginBottom: 28,
+  },
+  descPrompt: {
+    fontSize: 13,
+    color: '#64748B',
+    fontWeight: '600',
+    marginBottom: 4,
+  },
+  descContent: {
+    fontSize: 13,
+    color: '#1E293B',
+    lineHeight: 19,
+    marginVertical: 4,
   },
   addToCartButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.xl,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#1D4ED8',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1D4ED8',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
   addToCartText: {
     color: '#FFFFFF',
-    fontSize: 15,
+    fontSize: 16,
     fontWeight: '700',
   },
   centerBox: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
   loadingText: {
-    marginTop: theme.spacing.md,
-    fontSize: 14,
+    marginTop: 16,
+    fontSize: 15,
     fontWeight: '600',
-    color: theme.colors.text,
+    color: '#1E3A8A',
   },
   loadingSub: {
     marginTop: 4,
     fontSize: 12,
-    color: theme.colors.textLight,
+    color: '#64748B',
   },
   errorIcon: {
-    fontSize: 40,
+    fontSize: 44,
     marginBottom: 8,
   },
   errorTitle: {
-    fontSize: 16,
-    fontWeight: '700',
-    color: theme.colors.error,
-    marginBottom: 4,
+    fontSize: 18,
+    fontWeight: '800',
+    color: '#DC2626',
+    marginBottom: 6,
   },
   errorMessage: {
-    fontSize: 13,
-    color: theme.colors.text,
+    fontSize: 14,
+    fontWeight: '600',
+    color: '#1E3A8A',
     textAlign: 'center',
+    marginBottom: 4,
   },
   errorDetail: {
-    fontSize: 11,
-    color: theme.colors.textLight,
-    marginTop: 4,
-    marginBottom: theme.spacing.md,
+    fontSize: 12,
+    color: '#64748B',
+    textAlign: 'center',
+    marginBottom: 16,
   },
   retryButton: {
-    backgroundColor: theme.colors.primary,
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: 8,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#1D4ED8',
+    paddingHorizontal: 24,
+    paddingVertical: 10,
+    borderRadius: 8,
   },
   retryButtonText: {
     color: '#FFFFFF',
-    fontSize: 13,
+    fontSize: 14,
     fontWeight: '700',
   },
 });

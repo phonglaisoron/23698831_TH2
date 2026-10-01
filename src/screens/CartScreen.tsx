@@ -1,99 +1,87 @@
-import React from 'react';
+import React, { useEffect } from 'react';
 import {
   View,
   Text,
-  Image,
   FlatList,
   TouchableOpacity,
   StyleSheet,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useCartStore, CartItem } from '@stores/cartStore';
+import { useCartStore } from '@stores/cartStore';
 import { Watermark } from '@components/Watermark';
-import { theme } from '@constants/theme';
-import { STUDENT, ROOM_LABEL } from '@constants/student';
+import {
+  useCampusLocation,
+  calculateShippingFee,
+  KTX_GATE_LOCATION,
+} from '@hooks/useCampusLocation';
+import {
+  STUDENT,
+  ROOM_LABEL,
+  PRICE_MULTIPLIER,
+  VARIANT,
+} from '@constants/student';
 
 export const CartScreen: React.FC = () => {
   const items = useCartStore((s) => s.items);
-  const changeQty = useCartStore((s) => s.changeQty);
   const removeItem = useCartStore((s) => s.removeItem);
+  const changeQty = useCartStore((s) => s.changeQty);
   const clearCart = useCartStore((s) => s.clearCart);
   const shippingFee = useCartStore((s) => s.shippingFee);
-  const getTotalAmount = useCartStore((s) => s.getTotalAmount);
+  const distanceKm = useCartStore((s) => s.distanceKm);
 
-  const subtotal = getTotalAmount();
-  const actualShippingFee = shippingFee ?? 0;
-  const finalTotal = subtotal + actualShippingFee;
+  const { requestLocation } = useCampusLocation();
 
-  const handleClearAll = () => {
-    Alert.alert('Xác nhận', 'Bạn có chắc chắn muốn xóa toàn bộ giỏ hàng?', [
-      { text: 'Hủy', style: 'cancel' },
-      { text: 'Xóa hết', style: 'destructive', onPress: clearCart },
-    ]);
-  };
+  useEffect(() => {
+    requestLocation();
+  }, [requestLocation]);
 
-  const renderItem = ({ item }: { item: CartItem }) => (
-    <View style={styles.cartCard}>
-      <Image
-        source={{ uri: item.product.image }}
-        style={styles.itemImage}
-        resizeMode="contain"
-      />
-      <View style={styles.itemDetails}>
-        <Text style={styles.itemTitle} numberOfLines={2}>
-          {item.product.title}
-        </Text>
-        <Text style={styles.itemPrice}>
-          {item.unitPriceVnd.toLocaleString('vi-VN')} đ
-        </Text>
-
-        <View style={styles.qtyRow}>
-          <View style={styles.qtyControls}>
-            <TouchableOpacity
-              style={styles.qtyButton}
-              onPress={() => changeQty(item.id, -1)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.qtyButtonText}>−</Text>
-            </TouchableOpacity>
-            <Text style={styles.qtyValue}>{item.quantity}</Text>
-            <TouchableOpacity
-              style={styles.qtyButton}
-              onPress={() => changeQty(item.id, 1)}
-              hitSlop={{ top: 8, bottom: 8, left: 8, right: 8 }}
-            >
-              <Text style={styles.qtyButtonText}>+</Text>
-            </TouchableOpacity>
-          </View>
-
-          <TouchableOpacity
-            style={styles.removeButton}
-            onPress={() => removeItem(item.id)}
-          >
-            <Text style={styles.removeText}>Xóa</Text>
-          </TouchableOpacity>
-        </View>
-      </View>
-    </View>
+  const subTotal = items.reduce(
+    (sum, item) => sum + Math.round(item.product.price * PRICE_MULTIPLIER) * item.quantity,
+    0
   );
+
+  // Khoảng cách thực tế tính tới 12 Nguyễn Văn Bảo (ĐH Công nghiệp TP.HCM)
+  const currentKm = distanceKm !== null ? distanceKm : 1.07;
+  const effectiveShippingFee =
+    shippingFee !== null ? shippingFee : calculateShippingFee(currentKm);
+  const finalTotal = subTotal + (items.length > 0 ? effectiveShippingFee : 0);
+
+  const handleCheckout = () => {
+    Alert.alert(
+      'Xác nhận thanh toán',
+      `Đơn hàng giao đến: ${ROOM_LABEL}\n` +
+      `Điểm lấy hàng: ${KTX_GATE_LOCATION.address}\n` +
+      `Khoảng cách: ≈ ${currentKm.toFixed(1)} km\n` +
+      `Tiền hàng: ${subTotal.toLocaleString('vi-VN')} đ\n` +
+      `Phí ship: ${effectiveShippingFee.toLocaleString('vi-VN')} đ (công thức ${VARIANT.shipFormula})\n` +
+      `--------------------------------\n` +
+      `Tổng thanh toán: ${finalTotal.toLocaleString('vi-VN')} đ\n\n` +
+      `Sinh viên: ${STUDENT.hoTen} (${STUDENT.mssv})`,
+      [
+        { text: 'Hủy', style: 'cancel' },
+        {
+          text: 'Thanh toán ngay',
+          onPress: () => {
+            clearCart();
+            Alert.alert(
+              'Thanh toán thành công! 🎉',
+              `Đã đặt hàng và thanh toán thành công.\nShipper đang lấy đồ từ 12 Nguyễn Văn Bảo giao đến ${ROOM_LABEL} cho bạn!`
+            );
+          },
+        },
+      ]
+    );
+  };
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        {/* Header */}
-        <View style={styles.header}>
-          <View>
-            <Text style={styles.headerTitle}>Giỏ hàng KTXGo</Text>
-            <Text style={styles.roomNotice}>
-              Giao tận phòng: <Text style={styles.roomHighlight}>{ROOM_LABEL}</Text>
-            </Text>
-          </View>
-          {items.length > 0 && (
-            <TouchableOpacity onPress={handleClearAll} style={styles.clearBtn}>
-              <Text style={styles.clearBtnText}>Xóa tất cả</Text>
-            </TouchableOpacity>
-          )}
+        {VARIANT.watermarkAtTop && <Watermark />}
+
+        {/* Thanh Header GIỎ HÀNG màu xanh đậm như Hình 5 */}
+        <View style={styles.blueHeader}>
+          <Text style={styles.headerTitle}>GIỎ HÀNG</Text>
         </View>
 
         {items.length === 0 ? (
@@ -103,71 +91,95 @@ export const CartScreen: React.FC = () => {
             <Text style={styles.emptySubtitle}>
               Hãy chọn những món đồ dùng, đồ ăn ngon tại Tab Cửa hàng nhé!
             </Text>
-            <Text style={styles.studentNote}>
+            <Text style={styles.emptyStudent}>
               MSSV: {STUDENT.mssv} - {STUDENT.hoTen}
             </Text>
           </View>
         ) : (
-          <FlatList
-            data={items}
-            keyExtractor={(item) => `cart-${STUDENT.mssv}-${item.id}`}
-            renderItem={renderItem}
-            contentContainerStyle={styles.listContent}
-          />
-        )}
+          <View style={styles.mainContent}>
+            {/* Danh sách món trong giỏ */}
+            <FlatList
+              data={items}
+              keyExtractor={(item) => `${STUDENT.mssv}-${item.product.id}`}
+              contentContainerStyle={styles.listContent}
+              renderItem={({ item }) => {
+                const itemUnitVnd = Math.round(item.product.price * PRICE_MULTIPLIER);
+                const itemTotalVnd = itemUnitVnd * item.quantity;
 
-        {/* Footer Summary */}
-        {items.length > 0 && (
-          <View style={styles.summaryCard}>
-            <View style={styles.summaryRow}>
-              <Text style={styles.summaryLabel}>Tiền hàng:</Text>
-              <Text style={styles.summaryValue}>
-                {subtotal.toLocaleString('vi-VN')} đ
-              </Text>
-            </View>
+                return (
+                  <View style={styles.itemCard}>
+                    <View style={styles.itemInfo}>
+                      <Text style={styles.itemTitle} numberOfLines={1}>
+                        {item.product.title}
+                      </Text>
+                      <Text style={styles.itemSubtitle}>
+                        ×{item.quantity}  {itemTotalVnd.toLocaleString('vi-VN')} đ
+                      </Text>
+                      <View style={styles.qtyRow}>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => changeQty(item.product.id, item.quantity - 1)}
+                        >
+                          <Text style={styles.qtyBtnText}>−</Text>
+                        </TouchableOpacity>
+                        <Text style={styles.qtyVal}>{item.quantity}</Text>
+                        <TouchableOpacity
+                          style={styles.qtyBtn}
+                          onPress={() => changeQty(item.product.id, item.quantity + 1)}
+                        >
+                          <Text style={styles.qtyBtnText}>+</Text>
+                        </TouchableOpacity>
+                      </View>
+                    </View>
 
-            <View style={styles.summaryRow}>
-              <View style={styles.shippingLabelRow}>
-                <Text style={styles.summaryLabel}>Phí ship KTX:</Text>
-                {shippingFee === null && (
-                  <Text style={styles.shippingNotice}> (Vào tab Tôi để tính GPS)</Text>
-                )}
+                    {/* Nút xóa màu đỏ hình vuông góc phải như Hình 5 */}
+                    <TouchableOpacity
+                      style={styles.deleteButton}
+                      onPress={() => removeItem(item.product.id)}
+                      activeOpacity={0.8}
+                    >
+                      <Text style={styles.deleteButtonText}>✕</Text>
+                    </TouchableOpacity>
+                  </View>
+                );
+              }}
+            />
+
+            {/* Khung viền cam chứa thông tin giao hàng & phí ship tính từ 12 Nguyễn Văn Bảo */}
+            <View style={styles.summaryContainer}>
+              <View style={styles.orangeBox}>
+                <Text style={styles.deliveryRoomText}>Giao đến {ROOM_LABEL}</Text>
+                <Text style={styles.shippingFeeText}>
+                  Phí ship: {effectiveShippingFee.toLocaleString('vi-VN')} đ (công thức {VARIANT.shipFormula})
+                </Text>
+                <Text style={styles.originAddressText}>
+                  📍 Từ: {KTX_GATE_LOCATION.shortAddress} (ĐH Công nghiệp TP.HCM) · ≈ {currentKm.toFixed(1)} km
+                </Text>
               </View>
-              <Text style={styles.shippingValue}>
-                {shippingFee !== null
-                  ? `${shippingFee.toLocaleString('vi-VN')} đ`
-                  : 'Chưa tính GPS'}
-              </Text>
+
+              {/* Dòng Tổng hàng */}
+              <View style={styles.totalRow}>
+                <Text style={styles.totalLabel}>Tổng hàng:</Text>
+                <Text style={styles.totalAmountText}>
+                  {finalTotal.toLocaleString('vi-VN')} đ
+                </Text>
+              </View>
+
+              {/* Nút thanh toán ở dưới theo yêu cầu */}
+              <TouchableOpacity
+                style={styles.checkoutButton}
+                onPress={handleCheckout}
+                activeOpacity={0.85}
+              >
+                <Text style={styles.checkoutButtonText}>
+                  Thanh toán ({finalTotal.toLocaleString('vi-VN')} đ)
+                </Text>
+              </TouchableOpacity>
             </View>
-
-            <View style={styles.divider} />
-
-            <View style={styles.totalRow}>
-              <Text style={styles.totalLabel}>Tổng thanh toán:</Text>
-              <Text style={styles.totalValue}>
-                {finalTotal.toLocaleString('vi-VN')} đ
-              </Text>
-            </View>
-
-            <TouchableOpacity
-              style={styles.checkoutBtn}
-              onPress={() =>
-                Alert.alert(
-                  'Đặt hàng thành công!',
-                  `Đơn hàng sẽ được chuyển đến ${ROOM_LABEL} trong 15 phút.\n(MSSV: ${STUDENT.mssv})`,
-                  [{ text: 'OK', onPress: clearCart }]
-                )
-              }
-              activeOpacity={0.8}
-            >
-              <Text style={styles.checkoutText}>
-                Đặt hàng về {ROOM_LABEL}
-              </Text>
-            </TouchableOpacity>
           </View>
         )}
 
-        <Watermark />
+        {!VARIANT.watermarkAtTop && <Watermark />}
       </View>
     </SafeAreaView>
   );
@@ -176,209 +188,193 @@ export const CartScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#1D4ED8',
   },
   container: {
     flex: 1,
+    backgroundColor: '#EFF6FF',
   },
-  header: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
+  blueHeader: {
+    backgroundColor: '#1D4ED8',
+    paddingVertical: 14,
     alignItems: 'center',
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
+    justifyContent: 'center',
   },
   headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.colors.text,
+    fontSize: 18,
+    fontWeight: '900',
+    color: '#FFFFFF',
+    letterSpacing: 1,
   },
-  roomNotice: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-  roomHighlight: {
-    color: theme.colors.secondary,
-    fontWeight: '800',
-  },
-  clearBtn: {
-    paddingVertical: 6,
-    paddingHorizontal: 8,
-  },
-  clearBtnText: {
-    fontSize: 13,
-    color: theme.colors.error,
-    fontWeight: '600',
+  mainContent: {
+    flex: 1,
   },
   listContent: {
-    padding: theme.spacing.md,
+    padding: 16,
   },
-  cartCard: {
-    flexDirection: 'row',
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
-    padding: theme.spacing.md,
-    marginBottom: theme.spacing.sm,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    alignItems: 'center',
-  },
-  itemImage: {
-    width: 60,
-    height: 60,
-    borderRadius: theme.borderRadius.sm,
+  itemCard: {
     backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    marginBottom: 12,
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    borderWidth: 1,
+    borderColor: '#E2E8F0',
+    shadowColor: '#000',
+    shadowOffset: { width: 0, height: 1 },
+    shadowOpacity: 0.05,
+    shadowRadius: 2,
+    elevation: 2,
   },
-  itemDetails: {
+  itemInfo: {
     flex: 1,
-    marginLeft: theme.spacing.md,
   },
   itemTitle: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-    lineHeight: 18,
+    fontSize: 16,
+    fontWeight: '700',
+    color: '#1E3A8A',
+    marginBottom: 4,
   },
-  itemPrice: {
+  itemSubtitle: {
     fontSize: 14,
-    fontWeight: '800',
-    color: theme.colors.primary,
-    marginTop: 4,
+    color: '#64748B',
+    fontWeight: '500',
+    marginBottom: 6,
   },
   qtyRow: {
     flexDirection: 'row',
     alignItems: 'center',
-    justifyContent: 'space-between',
-    marginTop: 8,
+    gap: 8,
   },
-  qtyControls: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    backgroundColor: '#F1F5F9',
-    borderRadius: theme.borderRadius.sm,
-  },
-  qtyButton: {
-    width: 28,
-    height: 28,
+  qtyBtn: {
+    width: 26,
+    height: 26,
+    borderRadius: 6,
+    backgroundColor: '#EFF6FF',
+    borderWidth: 1,
+    borderColor: '#BFDBFE',
     alignItems: 'center',
     justifyContent: 'center',
   },
-  qtyButtonText: {
+  qtyBtnText: {
+    fontSize: 15,
+    fontWeight: '700',
+    color: '#1D4ED8',
+    lineHeight: 18,
+  },
+  qtyVal: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E3A8A',
+    minWidth: 16,
+    textAlign: 'center',
+  },
+  deleteButton: {
+    width: 36,
+    height: 36,
+    borderRadius: 8,
+    backgroundColor: '#DC2626',
+    alignItems: 'center',
+    justifyContent: 'center',
+    marginLeft: 12,
+  },
+  deleteButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+  },
+  summaryContainer: {
+    paddingHorizontal: 16,
+    paddingBottom: 16,
+  },
+  orangeBox: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 16,
+    borderWidth: 2,
+    borderColor: '#F97316',
+    marginBottom: 16,
+  },
+  deliveryRoomText: {
+    fontSize: 15,
+    fontWeight: '800',
+    color: '#1E3A8A',
+    marginBottom: 4,
+  },
+  shippingFeeText: {
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#F97316',
+  },
+  originAddressText: {
+    fontSize: 12,
+    color: '#64748B',
+    marginTop: 5,
+    fontWeight: '500',
+  },
+  totalRow: {
+    flexDirection: 'row',
+    alignItems: 'center',
+    justifyContent: 'space-between',
+    marginBottom: 12,
+    paddingHorizontal: 4,
+  },
+  totalLabel: {
     fontSize: 16,
     fontWeight: '700',
-    color: theme.colors.text,
+    color: '#4B5563',
   },
-  qtyValue: {
-    paddingHorizontal: 8,
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.text,
+  totalAmountText: {
+    fontSize: 20,
+    fontWeight: '900',
+    color: '#1D4ED8',
   },
-  removeButton: {
-    paddingHorizontal: 8,
-    paddingVertical: 4,
+  checkoutButton: {
+    backgroundColor: '#1D4ED8',
+    borderRadius: 14,
+    height: 52,
+    alignItems: 'center',
+    justifyContent: 'center',
+    shadowColor: '#1D4ED8',
+    shadowOffset: { width: 0, height: 3 },
+    shadowOpacity: 0.25,
+    shadowRadius: 6,
+    elevation: 3,
   },
-  removeText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    fontWeight: '600',
+  checkoutButtonText: {
+    color: '#FFFFFF',
+    fontSize: 16,
+    fontWeight: '800',
+    letterSpacing: 0.3,
   },
   emptyContainer: {
     flex: 1,
     alignItems: 'center',
     justifyContent: 'center',
-    padding: theme.spacing.xl,
+    padding: 24,
   },
   emptyIcon: {
     fontSize: 60,
-    marginBottom: theme.spacing.md,
+    marginBottom: 12,
   },
   emptyTitle: {
     fontSize: 18,
-    fontWeight: '700',
-    color: theme.colors.text,
+    fontWeight: '800',
+    color: '#1E3A8A',
     marginBottom: 6,
   },
   emptySubtitle: {
     fontSize: 13,
-    color: theme.colors.textLight,
+    color: '#64748B',
     textAlign: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  studentNote: {
-    fontSize: 12,
-    color: theme.colors.primary,
-    fontWeight: '600',
-  },
-  summaryCard: {
-    backgroundColor: theme.colors.surface,
-    padding: theme.spacing.lg,
-    borderTopWidth: 1,
-    borderTopColor: theme.colors.border,
-  },
-  summaryRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
-    marginBottom: 6,
-  },
-  summaryLabel: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-  },
-  summaryValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.text,
-  },
-  shippingLabelRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-  },
-  shippingNotice: {
-    fontSize: 11,
-    color: theme.colors.secondary,
-  },
-  shippingValue: {
-    fontSize: 14,
-    fontWeight: '700',
-    color: theme.colors.secondary,
-  },
-  divider: {
-    height: 1,
-    backgroundColor: theme.colors.border,
-    marginVertical: 8,
-  },
-  totalRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    alignItems: 'center',
     marginBottom: 12,
   },
-  totalLabel: {
-    fontSize: 15,
-    fontWeight: '800',
-    color: theme.colors.text,
-  },
-  totalValue: {
-    fontSize: 18,
-    fontWeight: '900',
-    color: theme.colors.primary,
-  },
-  checkoutBtn: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 14,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-  },
-  checkoutText: {
-    color: '#FFFFFF',
-    fontSize: 15,
-    fontWeight: '800',
+  emptyStudent: {
+    fontSize: 12,
+    fontWeight: '600',
+    color: '#1D4ED8',
   },
 });
 

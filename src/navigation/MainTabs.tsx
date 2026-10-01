@@ -37,10 +37,10 @@ export const MainTabs: React.FC = () => {
       name="CartTab"
       component={CartScreen}
       options={{
-        title: 'Giỏ hàng',
+        title: 'Giỏ',
         tabBarBadge: totalQuantity > 0 ? totalQuantity : undefined,
         tabBarBadgeStyle: {
-          backgroundColor: theme.colors.secondary,
+          backgroundColor: '#F97316',
           color: '#FFFFFF',
           fontSize: 10,
           fontWeight: '700',

@@ -3,194 +3,123 @@ import {
   View,
   Text,
   TouchableOpacity,
-  ScrollView,
   ActivityIndicator,
   StyleSheet,
   Alert,
 } from 'react-native';
 import { SafeAreaView } from 'react-native-safe-area-context';
-import { useAuthStore } from '@stores/authStore';
-import { useCampusLocation, KTX_GATE_LOCATION } from '@hooks/useCampusLocation';
-import { Watermark } from '@components/Watermark';
-import { theme } from '@constants/theme';
 import {
-  STUDENT,
-  ROOM_LABEL,
-  BASE_SHIP_FEE,
-  VARIANT,
-  examStamp,
-} from '@constants/student';
+  useCampusLocation,
+  calculateShippingFee,
+  DEFAULT_DISTANCE_KM,
+} from '@hooks/useCampusLocation';
+import { useAuthStore } from '@stores/authStore';
+import { Watermark } from '@components/Watermark';
+import { STUDENT, examStamp, VARIANT } from '@constants/student';
 
 export const MeScreen: React.FC = () => {
-  const logout = useAuthStore((s) => s.logout);
-  const identifier = useAuthStore((s) => s.identifier);
-
   const {
     status,
-    coords,
     distanceKm,
     shippingFee,
     loading,
-    errorMessage,
     requestLocation,
     openSettings,
   } = useCampusLocation();
 
+  const logout = useAuthStore((s) => s.logout);
+  const stamp = examStamp();
+
   const handleLogout = () => {
-    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất khỏi tài khoản?', [
+    Alert.alert('Đăng xuất', 'Bạn có chắc chắn muốn đăng xuất tài khoản?', [
       { text: 'Hủy', style: 'cancel' },
-      { text: 'Đăng xuất', style: 'destructive', onPress: logout },
+      { text: 'Đăng xuất', style: 'destructive', onPress: () => logout() },
     ]);
   };
+
+  const currentKm = distanceKm !== null ? distanceKm : DEFAULT_DISTANCE_KM;
+  const currentFee = shippingFee !== null ? shippingFee : calculateShippingFee(currentKm);
+
+  const displayDistance = currentKm.toFixed(1);
+  const displayFee = currentFee.toLocaleString('vi-VN');
 
   return (
     <SafeAreaView style={styles.safeArea} edges={['top', 'left', 'right']}>
       <View style={styles.container}>
-        <View style={styles.header}>
-          <Text style={styles.headerTitle}>Hồ sơ cá nhân</Text>
-          <Text style={styles.headerSubtitle}>KTXGo Delivery Service</Text>
+        {VARIANT.watermarkAtTop && <Watermark />}
+
+        {/* Header TÔI · LOCATION màu xanh đậm như Hình 5 */}
+        <View style={styles.blueHeader}>
+          <Text style={styles.headerTitle}>TÔI · LOCATION</Text>
         </View>
 
-        <ScrollView
-          style={styles.scrollView}
-          contentContainerStyle={styles.scrollContent}
-        >
-          {/* Card Thông tin sinh viên */}
-          <View style={styles.card}>
-            <View style={styles.avatarRow}>
-              <View style={styles.avatarCircle}>
-                <Text style={styles.avatarText}>
-                  {STUDENT.hoTen.charAt(0)}
-                </Text>
-              </View>
-              <View style={styles.avatarInfo}>
-                <Text style={styles.nameText}>{STUDENT.hoTen}</Text>
-                <Text style={styles.mssvText}>MSSV: {STUDENT.mssv}</Text>
-                <Text style={styles.phoneText}>
-                  {VARIANT.authField === 'phone' ? 'SĐT: ' : 'Email: '}
-                  {identifier || '0987654321'}
-                </Text>
-              </View>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Phòng ký túc xá:</Text>
-              <Text style={styles.infoValueHighlight}>{ROOM_LABEL}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Mã định danh Stamp:</Text>
-              <Text style={styles.infoValue}>#{examStamp()}</Text>
-            </View>
-
-            <View style={styles.infoRow}>
-              <Text style={styles.infoLabel}>Biến thể đề thi:</Text>
-              <Text style={styles.infoValue}>
-                Công thức {VARIANT.shipFormula} · Haptic {VARIANT.hapticOnAdd}
-              </Text>
-            </View>
+        <View style={styles.content}>
+          {/* Thông tin sinh viên căn giữa như Hình 5 */}
+          <View style={styles.profileSection}>
+            <Text style={styles.studentName}>{STUDENT.hoTen}</Text>
+            <Text style={styles.studentMeta}>
+              {STUDENT.mssv} · #{stamp}
+            </Text>
           </View>
 
-          {/* Card Định vị GPS & Phí Ship */}
-          <View style={styles.card}>
-            <Text style={styles.cardTitle}>📍 Định vị GPS & Phí giao hàng</Text>
-            <Text style={styles.cardDesc}>
-              Ước tính phí giao hàng từ Cổng KTX tới vị trí hiện tại của bạn theo công thức {VARIANT.shipFormula}.
+          {/* Card hiển thị trạng thái vị trí & Phí ship ước tính */}
+          <View style={styles.locationCard}>
+            <Text
+              style={[
+                styles.permissionText,
+                status === 'granted'
+                  ? styles.permGranted
+                  : styles.permOther,
+              ]}
+            >
+              Quyền: {status}
             </Text>
 
-            <View style={styles.locationInfoBox}>
-              <Text style={styles.locSubTitle}>Tọa độ mốc Cổng KTX:</Text>
-              <Text style={styles.locCoordText}>
-                {KTX_GATE_LOCATION.address}
-              </Text>
-              <Text style={styles.locCoordText}>
-                ({KTX_GATE_LOCATION.latitude.toFixed(6)}, {KTX_GATE_LOCATION.longitude.toFixed(6)})
-              </Text>
-            </View>
+            <Text style={styles.distanceText}>
+              ≈ {displayDistance} km tới 12 Nguyễn Văn Bảo (ĐH Công nghiệp TP.HCM)
+            </Text>
 
-            {/* Trạng thái quyền và kết quả */}
-            {status === 'granted' && coords && (
-              <View style={styles.resultBox}>
-                <Text style={styles.resultTitle}>✅ Đã xác định vị trí của bạn:</Text>
-                <Text style={styles.resultDetail}>
-                  Tọa độ: {coords.latitude.toFixed(6)}, {coords.longitude.toFixed(6)}
-                </Text>
-                <Text style={styles.resultDetail}>
-                  Khoảng cách Haversine: <Text style={styles.boldText}>{distanceKm} km</Text>
-                </Text>
-                <View style={styles.feeHighlightBox}>
-                  <Text style={styles.feeLabel}>Phí ship tính theo Công thức {VARIANT.shipFormula}:</Text>
-                  <Text style={styles.feeAmount}>
-                    {shippingFee?.toLocaleString('vi-VN')} đ
-                  </Text>
-                  <Text style={styles.formulaNote}>
-                    ({BASE_SHIP_FEE} + {distanceKm} × 1500 + 2000)
-                  </Text>
-                </View>
-                <Text style={styles.syncCartNotice}>
-                  * Phí ship đã được cập nhật tự động vào Giỏ hàng của bạn.
-                </Text>
-              </View>
-            )}
+            <Text style={styles.feeLabel}>Phí ship ước tính</Text>
+            <Text style={styles.feeValue}>{displayFee} đ</Text>
+          </View>
 
-            {status === 'denied' && (
-              <View style={styles.alertBox}>
-                <Text style={styles.alertText}>
-                  ⚠️ Bạn chưa cấp quyền truy cập vị trí. Hãy nhấn nút bên dưới để cấp quyền.
-                </Text>
-              </View>
-            )}
-
-            {status === 'blocked' && (
-              <View style={styles.blockedBox}>
-                <Text style={styles.blockedText}>
-                  🚫 Quyền truy cập vị trí đã bị chặn. Vui lòng mở Cài đặt thiết bị để cho phép.
-                </Text>
-                <TouchableOpacity
-                  style={styles.settingsButton}
-                  onPress={openSettings}
-                  activeOpacity={0.8}
-                >
-                  <Text style={styles.settingsButtonText}>
-                    Mở Cài đặt hệ thống (openSettings)
-                  </Text>
-                </TouchableOpacity>
-              </View>
-            )}
-
-            {errorMessage && status !== 'blocked' && (
-              <Text style={styles.errorText}>{errorMessage}</Text>
-            )}
-
+          {/* 3 Nút chức năng xếp dọc như Hình 5 */}
+          <View style={styles.actionsSection}>
+            {/* Nút 1: Lấy vị trí ước tính ship (Màu xanh) */}
             <TouchableOpacity
-              style={[styles.locationBtn, loading && styles.btnDisabled]}
+              style={styles.primaryBtn}
               onPress={requestLocation}
               disabled={loading}
-              activeOpacity={0.8}
+              activeOpacity={0.85}
             >
               {loading ? (
                 <ActivityIndicator color="#FFFFFF" size="small" />
               ) : (
-                <Text style={styles.locationBtnText}>
-                  {status === 'granted'
-                    ? '🔄 Cập nhật lại vị trí & Phí'
-                    : '🎯 Lấy vị trí & Tính phí ship'}
-                </Text>
+                <Text style={styles.primaryBtnText}>Lấy vị trí ước tính ship</Text>
               )}
             </TouchableOpacity>
+
+            {/* Nút 2: Mở Cài đặt (blocked) (Nền trắng viền xanh) */}
+            <TouchableOpacity
+              style={styles.secondaryBtn}
+              onPress={openSettings}
+              activeOpacity={0.8}
+            >
+              <Text style={styles.secondaryBtnText}>Mở Cài đặt (blocked)</Text>
+            </TouchableOpacity>
+
+            {/* Nút 3: Đăng xuất (Màu đỏ) */}
+            <TouchableOpacity
+              style={styles.logoutBtn}
+              onPress={handleLogout}
+              activeOpacity={0.85}
+            >
+              <Text style={styles.logoutBtnText}>Đăng xuất</Text>
+            </TouchableOpacity>
           </View>
+        </View>
 
-          {/* Nút Đăng xuất */}
-          <TouchableOpacity
-            style={styles.logoutButton}
-            onPress={handleLogout}
-            activeOpacity={0.8}
-          >
-            <Text style={styles.logoutText}>Đăng xuất tài khoản</Text>
-          </TouchableOpacity>
-        </ScrollView>
-
-        <Watermark />
+        {!VARIANT.watermarkAtTop && <Watermark />}
       </View>
     </SafeAreaView>
   );
@@ -199,254 +128,119 @@ export const MeScreen: React.FC = () => {
 const styles = StyleSheet.create({
   safeArea: {
     flex: 1,
-    backgroundColor: theme.colors.background,
+    backgroundColor: '#1D4ED8',
   },
   container: {
     flex: 1,
+    backgroundColor: '#EFF6FF',
   },
-  header: {
-    paddingHorizontal: theme.spacing.lg,
-    paddingVertical: theme.spacing.md,
-    backgroundColor: theme.colors.surface,
-    borderBottomWidth: 1,
-    borderBottomColor: theme.colors.border,
-  },
-  headerTitle: {
-    fontSize: 20,
-    fontWeight: '800',
-    color: theme.colors.text,
-  },
-  headerSubtitle: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-  scrollView: {
-    flex: 1,
-  },
-  scrollContent: {
-    padding: theme.spacing.lg,
-  },
-  card: {
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.lg,
-    padding: theme.spacing.lg,
-    marginBottom: theme.spacing.md,
-    borderWidth: 1,
-    borderColor: theme.colors.border,
-    shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
-    shadowOpacity: 0.04,
-    shadowRadius: 6,
-    elevation: 2,
-  },
-  avatarRow: {
-    flexDirection: 'row',
-    alignItems: 'center',
-    marginBottom: theme.spacing.md,
-  },
-  avatarCircle: {
-    width: 54,
-    height: 54,
-    borderRadius: 27,
-    backgroundColor: theme.colors.primary,
+  blueHeader: {
+    backgroundColor: '#1D4ED8',
+    paddingVertical: 14,
     alignItems: 'center',
     justifyContent: 'center',
   },
-  avatarText: {
-    fontSize: 24,
+  headerTitle: {
+    fontSize: 18,
     fontWeight: '900',
     color: '#FFFFFF',
+    letterSpacing: 1,
   },
-  avatarInfo: {
-    marginLeft: theme.spacing.md,
+  content: {
     flex: 1,
+    paddingHorizontal: 20,
+    paddingTop: 24,
   },
-  nameText: {
-    fontSize: 16,
+  profileSection: {
+    alignItems: 'center',
+    marginBottom: 20,
+  },
+  studentName: {
+    fontSize: 20,
     fontWeight: '800',
-    color: theme.colors.text,
-  },
-  mssvText: {
-    fontSize: 13,
-    color: theme.colors.primary,
-    fontWeight: '700',
-    marginTop: 2,
-  },
-  phoneText: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    marginTop: 2,
-  },
-  infoRow: {
-    flexDirection: 'row',
-    justifyContent: 'space-between',
-    paddingVertical: 6,
-    borderTopWidth: StyleSheet.hairlineWidth,
-    borderTopColor: '#E2E8F0',
-  },
-  infoLabel: {
-    fontSize: 13,
-    color: theme.colors.textLight,
-  },
-  infoValue: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-  },
-  infoValueHighlight: {
-    fontSize: 13,
-    fontWeight: '800',
-    color: theme.colors.secondary,
-  },
-  cardTitle: {
-    fontSize: 15,
-    fontWeight: '700',
-    color: theme.colors.text,
+    color: '#1E3A8A',
     marginBottom: 4,
+    textAlign: 'center',
   },
-  cardDesc: {
-    fontSize: 12,
-    color: theme.colors.textLight,
-    lineHeight: 18,
-    marginBottom: theme.spacing.md,
+  studentMeta: {
+    fontSize: 14,
+    color: '#64748B',
+    fontWeight: '600',
   },
-  locationInfoBox: {
-    backgroundColor: '#F8FAFC',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
+  locationCard: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 14,
+    padding: 20,
     borderWidth: 1,
     borderColor: '#E2E8F0',
+    marginBottom: 24,
   },
-  locSubTitle: {
-    fontSize: 11,
+  permissionText: {
+    fontSize: 15,
     fontWeight: '700',
-    color: theme.colors.textLight,
-    textTransform: 'uppercase',
-    marginBottom: 2,
+    marginBottom: 8,
   },
-  locCoordText: {
-    fontSize: 12,
-    color: theme.colors.text,
-    fontFamily: 'monospace',
+  permGranted: {
+    color: '#16A34A',
   },
-  resultBox: {
-    backgroundColor: '#F0FDF4',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    borderWidth: 1,
-    borderColor: '#BBF7D0',
-    marginBottom: theme.spacing.md,
+  permOther: {
+    color: '#DC2626',
   },
-  resultTitle: {
-    fontSize: 13,
-    fontWeight: '700',
-    color: theme.colors.success,
-    marginBottom: 4,
-  },
-  resultDetail: {
-    fontSize: 12,
-    color: theme.colors.text,
-    marginBottom: 2,
-  },
-  boldText: {
-    fontWeight: '800',
-    color: theme.colors.primary,
-  },
-  feeHighlightBox: {
-    marginTop: 8,
-    paddingTop: 8,
-    borderTopWidth: 1,
-    borderTopColor: '#DCFCE7',
+  distanceText: {
+    fontSize: 15,
+    color: '#1E293B',
+    marginBottom: 12,
+    fontWeight: '500',
   },
   feeLabel: {
-    fontSize: 12,
-    color: theme.colors.textLight,
+    fontSize: 14,
+    color: '#64748B',
+    marginBottom: 4,
   },
-  feeAmount: {
-    fontSize: 20,
+  feeValue: {
+    fontSize: 26,
     fontWeight: '900',
-    color: theme.colors.secondary,
-    marginTop: 2,
+    color: '#F97316',
   },
-  formulaNote: {
-    fontSize: 10,
-    color: theme.colors.textLight,
-    fontStyle: 'italic',
+  actionsSection: {
+    gap: 12,
   },
-  syncCartNotice: {
-    fontSize: 11,
-    color: theme.colors.success,
-    marginTop: 6,
-    fontStyle: 'italic',
-  },
-  alertBox: {
-    backgroundColor: '#FEF3C7',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
-  },
-  alertText: {
-    fontSize: 12,
-    color: '#92400E',
-    fontWeight: '500',
-  },
-  blockedBox: {
-    backgroundColor: '#FEE2E2',
-    padding: theme.spacing.md,
-    borderRadius: theme.borderRadius.md,
-    marginBottom: theme.spacing.md,
-  },
-  blockedText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginBottom: 8,
-    fontWeight: '500',
-  },
-  settingsButton: {
-    backgroundColor: theme.colors.error,
-    paddingVertical: 8,
-    paddingHorizontal: 12,
-    borderRadius: theme.borderRadius.sm,
-    alignItems: 'center',
-  },
-  settingsButtonText: {
-    color: '#FFFFFF',
-    fontSize: 12,
-    fontWeight: '700',
-  },
-  errorText: {
-    fontSize: 12,
-    color: theme.colors.error,
-    marginBottom: 8,
-  },
-  locationBtn: {
-    backgroundColor: theme.colors.primary,
-    paddingVertical: 12,
-    borderRadius: theme.borderRadius.md,
-    alignItems: 'center',
-  },
-  btnDisabled: {
-    opacity: 0.7,
-  },
-  locationBtnText: {
-    color: '#FFFFFF',
-    fontSize: 14,
-    fontWeight: '700',
-  },
-  logoutButton: {
-    backgroundColor: '#FEE2E2',
+  primaryBtn: {
+    backgroundColor: '#1D4ED8',
+    borderRadius: 12,
     paddingVertical: 14,
-    borderRadius: theme.borderRadius.md,
     alignItems: 'center',
-    marginBottom: theme.spacing.xl,
-    borderWidth: 1,
-    borderColor: '#FECACA',
+    justifyContent: 'center',
   },
-  logoutText: {
-    color: theme.colors.error,
-    fontSize: 14,
+  primaryBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  secondaryBtn: {
+    backgroundColor: '#FFFFFF',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+    borderWidth: 1.5,
+    borderColor: '#1D4ED8',
+  },
+  secondaryBtnText: {
+    color: '#1D4ED8',
+    fontSize: 15,
+    fontWeight: '700',
+  },
+  logoutBtn: {
+    backgroundColor: '#DC2626',
+    borderRadius: 12,
+    paddingVertical: 14,
+    alignItems: 'center',
+    justifyContent: 'center',
+  },
+  logoutBtnText: {
+    color: '#FFFFFF',
+    fontSize: 15,
     fontWeight: '700',
   },
 });

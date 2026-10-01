@@ -1,14 +1,15 @@
 import { useState, useCallback } from 'react';
-import { Linking, Alert, Platform } from 'react-native';
+import { Linking, Platform } from 'react-native';
 import * as Location from 'expo-location';
 import { BASE_SHIP_FEE, VARIANT } from '@constants/student';
 import { useCartStore } from '@stores/cartStore';
 
-// Tọa độ cổng KTX IUH (Ký túc xá Đại học Công Nghiệp TP.HCM)
+// Tọa độ Trường Đại học Công nghiệp TP.HCM (IUH) tại 12 Nguyễn Văn Bảo, Phường 4, Gò Vấp, TP.HCM
 export const KTX_GATE_LOCATION = {
   latitude: 10.822363,
   longitude: 106.687498,
-  address: 'Cổng KTX IUH, Gò Vấp, TP.HCM',
+  address: '12 Nguyễn Văn Bảo, P.4, Q.Gò Vấp, TP.HCM (Trường ĐH Công nghiệp TP.HCM)',
+  shortAddress: '12 Nguyễn Văn Bảo, Gò Vấp',
 };
 
 export type PermissionStatus = 'idle' | 'granted' | 'denied' | 'blocked';
@@ -41,11 +42,18 @@ export function calculateShippingFee(distanceKm: number): number {
   return BASE_SHIP_FEE + Math.round(km * 1500) + 2000;
 }
 
+// Khoảng cách thực tế đến 12 Nguyễn Văn Bảo (ĐH Công nghiệp TP.HCM)
+export const DEFAULT_DISTANCE_KM = 1.07;
+export const DEFAULT_SHIPPING_FEE = calculateShippingFee(DEFAULT_DISTANCE_KM); // 12.605 đ
+
 export function useCampusLocation() {
+  const cartShippingFee = useCartStore((s) => s.shippingFee);
+  const cartDistanceKm = useCartStore((s) => s.distanceKm);
+
   const [status, setStatus] = useState<PermissionStatus>('idle');
   const [coords, setCoords] = useState<{ latitude: number; longitude: number } | null>(null);
-  const [distanceKm, setDistanceKm] = useState<number | null>(null);
-  const [shippingFee, setShippingFee] = useState<number | null>(null);
+  const [distanceKm, setDistanceKm] = useState<number | null>(cartDistanceKm ?? DEFAULT_DISTANCE_KM);
+  const [shippingFee, setShippingFee] = useState<number | null>(cartShippingFee ?? DEFAULT_SHIPPING_FEE);
   const [loading, setLoading] = useState<boolean>(false);
   const [errorMessage, setErrorMessage] = useState<string | null>(null);
 
@@ -98,7 +106,7 @@ export function useCampusLocation() {
 
         const fee = calculateShippingFee(roundedKm);
         setShippingFee(fee);
-        setCartShippingFee(fee);
+        setCartShippingFee(fee, roundedKm);
       } else if (!permissionResponse.canAskAgain) {
         setStatus('blocked');
         setErrorMessage('Quyền vị trí đã bị chặn vĩnh viễn. Vui lòng mở Cài đặt để cấp quyền.');

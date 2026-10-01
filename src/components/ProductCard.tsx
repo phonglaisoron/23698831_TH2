@@ -14,6 +14,7 @@ import { PRICE_MULTIPLIER, VARIANT } from '@constants/student';
 
 interface ProductCardProps {
   product: Product;
+  index?: number;
   onPress: (product: Product) => void;
   onAddToCart: (product: Product) => void;
 }
@@ -21,12 +22,21 @@ interface ProductCardProps {
 const { width } = Dimensions.get('window');
 const CARD_WIDTH = (width - theme.spacing.lg * 2 - theme.spacing.md) / 2;
 
+const PASTEL_COLORS = [
+  { bg: '#FEF3C7', oval: '#93C5FD', rect: '#1D4ED8' }, // Vàng pastel (Cơm nắm)
+  { bg: '#E0F2FE', oval: '#93C5FD', rect: '#1D4ED8' }, // Xanh dương pastel (Trà sữa)
+  { bg: '#DCFCE7', oval: '#93C5FD', rect: '#1D4ED8' }, // Xanh lá pastel (Bút bi)
+  { bg: '#FEE2E2', oval: '#93C5FD', rect: '#1D4ED8' }, // Hồng/đỏ pastel (Mì ly)
+];
+
 export const ProductCard: React.FC<ProductCardProps> = ({
   product,
+  index = 0,
   onPress,
   onAddToCart,
 }) => {
   const priceVnd = Math.round(product.price * PRICE_MULTIPLIER).toLocaleString('vi-VN') + ' đ';
+  const pastel = PASTEL_COLORS[index % PASTEL_COLORS.length];
 
   const handleAddPress = async (e: any) => {
     e.stopPropagation?.();
@@ -42,25 +52,26 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 
   return (
     <TouchableOpacity
-      activeOpacity={0.8}
+      activeOpacity={0.85}
       style={styles.card}
       onPress={() => onPress(product)}
     >
-      <View style={styles.imageContainer}>
-        <Image
-          source={{ uri: product.image }}
-          style={styles.image}
-          resizeMode="contain"
-        />
-        <View style={styles.categoryBadge}>
-          <Text style={styles.categoryText} numberOfLines={1}>
-            {product.category}
-          </Text>
+      {/* Khung hình pastel giống hệt hình minh họa đề thi */}
+      <View style={[styles.imageContainer, { backgroundColor: pastel.bg }]}>
+        <View style={[styles.mockOval, { backgroundColor: pastel.oval }]}>
+          <View style={[styles.mockRect, { backgroundColor: pastel.rect }]} />
         </View>
+        {product.image ? (
+          <Image
+            source={{ uri: product.image }}
+            style={styles.realImage}
+            resizeMode="contain"
+          />
+        ) : null}
       </View>
 
       <View style={styles.content}>
-        <Text style={styles.title} numberOfLines={2}>
+        <Text style={styles.title} numberOfLines={1}>
           {product.title}
         </Text>
         <View style={styles.footer}>
@@ -82,79 +93,73 @@ export const ProductCard: React.FC<ProductCardProps> = ({
 const styles = StyleSheet.create({
   card: {
     width: CARD_WIDTH,
-    backgroundColor: theme.colors.surface,
-    borderRadius: theme.borderRadius.md,
+    backgroundColor: '#FFFFFF',
+    borderRadius: 16,
     marginBottom: theme.spacing.md,
     borderWidth: 1,
-    borderColor: theme.colors.border,
+    borderColor: '#E2E8F0',
     overflow: 'hidden',
     shadowColor: '#000',
-    shadowOffset: { width: 0, height: 2 },
+    shadowOffset: { width: 0, height: 1 },
     shadowOpacity: 0.05,
-    shadowRadius: 4,
+    shadowRadius: 3,
     elevation: 2,
+    padding: 8,
   },
   imageContainer: {
-    height: 140,
-    backgroundColor: '#FFFFFF',
-    padding: theme.spacing.sm,
-    position: 'relative',
+    height: 105,
+    borderRadius: 12,
     alignItems: 'center',
     justifyContent: 'center',
+    position: 'relative',
+    overflow: 'hidden',
   },
-  image: {
-    width: '100%',
-    height: '100%',
+  mockOval: {
+    width: '78%',
+    height: 48,
+    borderRadius: 24,
+    alignItems: 'center',
+    justifyContent: 'center',
+    opacity: 0.9,
   },
-  categoryBadge: {
+  mockRect: {
+    width: '70%',
+    height: 22,
+    borderRadius: 4,
+  },
+  realImage: {
     position: 'absolute',
-    top: 6,
-    left: 6,
-    backgroundColor: 'rgba(239, 246, 255, 0.9)',
-    paddingHorizontal: 6,
-    paddingVertical: 2,
-    borderRadius: theme.borderRadius.sm,
-    borderWidth: StyleSheet.hairlineWidth,
-    borderColor: theme.colors.border,
-    maxWidth: '80%',
-  },
-  categoryText: {
-    fontSize: 9,
-    color: theme.colors.primary,
-    fontWeight: '600',
-    textTransform: 'uppercase',
+    width: '75%',
+    height: '75%',
+    opacity: 0.15,
   },
   content: {
-    padding: theme.spacing.sm,
-    flex: 1,
-    justifyContent: 'space-between',
+    paddingTop: 8,
+    paddingHorizontal: 4,
   },
   title: {
-    fontSize: 13,
-    fontWeight: '600',
-    color: theme.colors.text,
-    lineHeight: 18,
-    marginBottom: 6,
-    minHeight: 36,
+    fontSize: 14,
+    fontWeight: '700',
+    color: '#1E3A8A',
+    marginBottom: 4,
   },
   footer: {
     flexDirection: 'row',
     alignItems: 'center',
     justifyContent: 'space-between',
-    marginTop: 4,
+    marginTop: 2,
   },
   price: {
     fontSize: 13,
-    fontWeight: '800',
-    color: theme.colors.primary,
+    fontWeight: '700',
+    color: '#1D4ED8',
     flex: 1,
-    marginRight: 4,
   },
   addButton: {
     width: 28,
     height: 28,
     borderRadius: 14,
-    backgroundColor: theme.colors.primary,
+    backgroundColor: '#1D4ED8',
     alignItems: 'center',
     justifyContent: 'center',
   },
